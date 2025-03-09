@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { LockDomainService } from '../../domain/services/lock-domain.service';
 import type { LockControlPort } from '../../domain/ports/output/lock-control.port';
 import type { LockNotificationPort } from '../../domain/ports/output/lock-notification.port';
@@ -6,8 +6,11 @@ import type { LockNotificationPort } from '../../domain/ports/output/lock-notifi
 @Injectable()
 export class CloseLockUseCase {
   constructor(
+    @Inject('LOCK_DOMAIN_SERVICE')
     private readonly lockDomainService: LockDomainService,
+    @Inject('LOCK_CONTROL_PORT')
     private readonly lockControlPort: LockControlPort,
+    @Inject('LOCK_NOTIFICATION_PORT')
     private readonly lockNotificationPort: LockNotificationPort,
   ) {}
 

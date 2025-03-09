@@ -4,11 +4,14 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './jwt.strategy';
 import { EnvironmentConfigService } from '../config/environment-config';
 import { WsJwtGuard } from './ws-jwt.guard';
+import { ConfigModule } from '../config/config.module';
 
 @Module({
   imports: [
+    ConfigModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
+      imports: [ConfigModule],
       useFactory: async (configService: EnvironmentConfigService) => ({
         secret: configService.getJwtSecret(),
         signOptions: {
@@ -18,7 +21,14 @@ import { WsJwtGuard } from './ws-jwt.guard';
       inject: [EnvironmentConfigService],
     }),
   ],
-  providers: [JwtStrategy, WsJwtGuard],
+  providers: [
+    {
+      provide: 'CONFIG_SERVICE',
+      useExisting: EnvironmentConfigService,
+    },
+    JwtStrategy,
+    WsJwtGuard,
+  ],
   exports: [JwtModule, PassportModule, WsJwtGuard],
 })
 export class AuthModule {}

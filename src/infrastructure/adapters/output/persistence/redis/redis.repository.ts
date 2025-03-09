@@ -1,17 +1,19 @@
 import {
   Injectable,
   Logger,
-  type OnModuleDestroy,
-  type OnModuleInit,
+  OnModuleDestroy,
+  OnModuleInit,
+  Inject,
 } from '@nestjs/common';
-import { createClient, type RedisClientType } from 'redis';
-import type { EnvironmentConfigService } from '../../../../config/environment-config';
+import { createClient, RedisClientType } from 'redis';
+import { EnvironmentConfigService } from '../../../../config/environment-config';
 import {
   Lock,
-  type LockStatusType,
+  LockStatusType,
 } from '../../../../../domain/entities/lock.entity';
-import type { LockRepositoryPort } from '../../../../../domain/ports/output/lock-repository.port';
-import type { SessionRepositoryPort } from '../../../../../domain/ports/output/session-repository.port';
+import { LockRepositoryPort } from '../../../../../domain/ports/output/lock-repository.port';
+import { SessionRepositoryPort } from '../../../../../domain/ports/output/session-repository.port';
+import { errorMessage } from 'src/infrastructure/utilities/error-message';
 
 @Injectable()
 export class RedisRepository
@@ -24,7 +26,10 @@ export class RedisRepository
   private readonly logger = new Logger(RedisRepository.name);
   private client: RedisClientType;
 
-  constructor(private readonly configService: EnvironmentConfigService) {
+  constructor(
+    @Inject('CONFIG_SERVICE')
+    private readonly configService: EnvironmentConfigService,
+  ) {
     this.client = createClient({
       url: this.configService.getRedisUrl(),
     });
@@ -39,7 +44,7 @@ export class RedisRepository
       await this.client.connect();
       this.logger.log('Redis connection established');
     } catch (error) {
-      this.logger.error(`Error connecting to Redis: ${error.message}`);
+      this.logger.error(`Error connecting to Redis: ${errorMessage(error)}`);
     }
   }
 
@@ -68,9 +73,7 @@ export class RedisRepository
   async registerClient(userId: number, socketId: string): Promise<void> {
     const key = `user:${userId}:socket`;
     await this.client.set(key, socketId);
-
     await this.client.sAdd('connected:clients', socketId);
-
     this.logger.debug(`Client registered: User ${userId}, Socket ${socketId}`);
   }
 

@@ -23,6 +23,7 @@ import { SessionRepositoryPort } from '../../../../domain/ports/output/session-r
 import { OpenLockDto } from '../../../../application/dtos/open-lock.dto';
 import { LockStatusType } from '../../../../domain/entities/lock.entity';
 import { JwtPayload } from '../../../auth/jwt.strategy';
+import { errorMessage } from 'src/infrastructure/utilities/error-message';
 
 @Injectable()
 @WebSocketGateway({
@@ -36,10 +37,11 @@ export class WebsocketsAdapter
   private readonly logger = new Logger(WebsocketsAdapter.name);
 
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(
     private readonly jwtService: JwtService,
+    @Inject('SESSION_REPOSITORY_PORT')
     private readonly sessionRepository: SessionRepositoryPort,
     @Inject(forwardRef(() => LockCommandPort))
     private readonly lockCommandPort: LockCommandPort,
@@ -75,12 +77,12 @@ export class WebsocketsAdapter
         );
       } catch (error) {
         this.logger.warn(
-          `Connection rejected: Invalid token - ${error.message}`,
+          `Connection rejected: Invalid token - ${errorMessage(error)}`,
         );
         client.disconnect();
       }
     } catch (error) {
-      this.logger.error(`Error in handleConnection: ${error.message}`);
+      this.logger.error(`Error in handleConnection: ${errorMessage(error)}`);
       client.disconnect();
     }
   }
@@ -98,7 +100,7 @@ export class WebsocketsAdapter
         );
       }
     } catch (error) {
-      this.logger.error(`Error in handleDisconnect: ${error.message}`);
+      this.logger.error(`Error in handleDisconnect: ${errorMessage(error)}`);
     }
   }
 
@@ -119,8 +121,10 @@ export class WebsocketsAdapter
 
       return { success: true, message: 'Command sent successfully' };
     } catch (error) {
-      this.logger.error(`Error processing open request: ${error.message}`);
-      return { success: false, message: error.message };
+      this.logger.error(
+        `Error processing open request: ${errorMessage(error)}`,
+      );
+      return { success: false, message: errorMessage(error) };
     }
   }
 
@@ -141,8 +145,10 @@ export class WebsocketsAdapter
 
       return { success: true, message: 'Command sent successfully' };
     } catch (error) {
-      this.logger.error(`Error processing close request: ${error.message}`);
-      return { success: false, message: error.message };
+      this.logger.error(
+        `Error processing close request: ${errorMessage(error)}`,
+      );
+      return { success: false, message: errorMessage(error) };
     }
   }
 

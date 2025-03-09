@@ -7,11 +7,11 @@ import { LockControlPort } from '../../../../../domain/ports/output/lock-control
 @Module({
   imports: [ConfigModule, forwardRef(() => ApplicationModule)],
   providers: [
+    MqttAdapter,
     {
       provide: LockControlPort,
       useClass: MqttAdapter,
     },
-    MqttAdapter,
   ],
   exports: [LockControlPort, MqttAdapter],
 })

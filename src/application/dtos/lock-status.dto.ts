@@ -3,10 +3,10 @@ import type { LockStatusType } from '../../domain/entities/lock.entity';
 
 export class LockStatusDto {
   @IsNumber()
-  lockId: number;
+  lockId!: number;
 
   @IsEnum(['open', 'closed'], {
     message: "Status must be 'open' or 'closed'",
   })
-  status: LockStatusType;
+  status!: LockStatusType;
 }

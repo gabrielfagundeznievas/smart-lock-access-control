@@ -10,6 +10,7 @@ import * as mqtt from 'mqtt';
 import { EnvironmentConfigService } from '../../../../config/environment-config';
 import { LockControlPort } from '../../../../../domain/ports/output/lock-control.port';
 import { LockApplicationService } from '../../../../../application/services/lock-application.service';
+import { errorMessage } from 'src/infrastructure/utilities/error-message';
 
 interface LockStatusMessage {
   lockId: number;
@@ -26,7 +27,7 @@ export class MqttAdapter
   implements LockControlPort, OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(MqttAdapter.name);
-  private client: mqtt.MqttClient;
+  private client!: mqtt.MqttClient;
 
   private readonly statusTopic = 'lock/status';
   private readonly controlTopic = 'lock/control';
@@ -88,7 +89,9 @@ export class MqttAdapter
         this.handleLockStatusUpdate(message);
       }
     } catch (error) {
-      this.logger.error(`Error processing MQTT message: ${error.message}`);
+      this.logger.error(
+        `Error processing MQTT message: ${errorMessage(error)}`,
+      );
     }
   }
 

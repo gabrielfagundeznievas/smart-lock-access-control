@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EnvironmentConfigService {
-  constructor(private configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {}
 
   getMqttBrokerUrl(): string {
     const mqttBrokerUrl = this.configService.get<string>('MQTT_BROKER_URL');
@@ -28,7 +28,10 @@ export class EnvironmentConfigService {
   }
 
   getJwtSecret(): string {
-    return this.configService.get<string>('JWT_SECRET', 'default_secret_key');
+    return this.configService.get<string>(
+      'JWT_SECRET',
+      'default_secret_key_for_poc',
+    );
   }
 
   getJwtExpirationTime(): string {

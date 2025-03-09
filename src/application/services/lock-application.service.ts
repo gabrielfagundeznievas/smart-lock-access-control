@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { LockStatusType } from '../../domain/entities/lock.entity';
 import type { OpenLockUseCase } from '../use-cases/open-lock.use-case';
 import type { CloseLockUseCase } from '../use-cases/close-lock.use-case';
@@ -10,9 +10,13 @@ import type { LockRepositoryPort } from '../../domain/ports/output/lock-reposito
 @Injectable()
 export class LockApplicationService implements LockCommandPort, LockQueryPort {
   constructor(
+    @Inject('OPEN_LOCK_USE_CASE')
     private readonly openLockUseCase: OpenLockUseCase,
+    @Inject('CLOSE_LOCK_USE_CASE')
     private readonly closeLockUseCase: CloseLockUseCase,
+    @Inject('UPDATE_LOCK_STATUS_USE_CASE')
     private readonly updateLockStatusUseCase: UpdateLockStatusUseCase,
+    @Inject('LOCK_REPOSITORY_PORT')
     private readonly lockRepository: LockRepositoryPort,
   ) {}
 

@@ -3,10 +3,15 @@ import { RedisRepository } from './redis.repository';
 import { ConfigModule } from '../../../../config/config.module';
 import { LockRepositoryPort } from '../../../../../domain/ports/output/lock-repository.port';
 import { SessionRepositoryPort } from '../../../../../domain/ports/output/session-repository.port';
+import { EnvironmentConfigService } from '../../../../config/environment-config';
 
 @Module({
   imports: [ConfigModule],
   providers: [
+    {
+      provide: 'CONFIG_SERVICE',
+      useExisting: EnvironmentConfigService,
+    },
     RedisRepository,
     {
       provide: LockRepositoryPort,
