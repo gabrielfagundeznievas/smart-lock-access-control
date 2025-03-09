@@ -11,6 +11,10 @@ Este proyecto implementa un backend para un sistema de control de acceso que per
     - [Componentes Principales](#componentes-principales)
     - [Puertos y Adaptadores](#puertos-y-adaptadores)
     - [Flujo de Datos](#flujo-de-datos)
+  - [Patrones de Implementación](#patrones-de-implementación)
+    - [Inyección de Dependencias en Arquitectura Hexagonal](#inyección-de-dependencias-en-arquitectura-hexagonal)
+    - [Clases Abstractas vs Interfaces](#clases-abstractas-vs-interfaces)
+    - [Gestión de Dependencias Circulares](#gestión-de-dependencias-circulares)
   - [Tecnologías Utilizadas](#tecnologías-utilizadas)
   - [Prerrequisitos](#prerrequisitos)
   - [Configuración](#configuración)
@@ -24,6 +28,11 @@ Este proyecto implementa un backend para un sistema de control de acceso que per
     - [Conectarse mediante WebSockets](#conectarse-mediante-websockets)
     - [Simulación de Dispositivos MQTT](#simulación-de-dispositivos-mqtt)
   - [Estructura del Proyecto](#estructura-del-proyecto)
+  - [Resolución de Problemas Comunes](#resolución-de-problemas-comunes)
+    - [Problemas de Dependencias Circulares](#problemas-de-dependencias-circulares)
+    - [Problemas con la Resolución de NestJS](#problemas-con-la-resolución-de-nestjs)
+    - [Problemas con Redis o MQTT](#problemas-con-redis-o-mqtt)
+    - [Problemas con Docker](#problemas-con-docker)
   - [Desarrollo y Contribución](#desarrollo-y-contribución)
     - [Ejecutar pruebas](#ejecutar-pruebas)
     - [Lint y formateo de código](#lint-y-formateo-de-código)
@@ -48,20 +57,21 @@ El sistema está diseñado siguiendo la arquitectura hexagonal (también conocid
 
 ### Componentes Principales
 
-- **Dominio**: 
+- **Dominio**:
   - Entidades de negocio y reglas (Lock)
   - Puertos de entrada (interfaces que definen cómo se puede usar el dominio)
   - Puertos de salida (interfaces que definen cómo el dominio se comunica con servicios externos)
   - Servicios de dominio (lógica de negocio pura)
 
 - **Aplicación**:
-  - Casos de uso específicos (OpenLock, CloseLock, UpdateLockStatus)
+  - Casos de uso específicos (OpenLock, CloseLockUseCase, UpdateLockStatusUseCase)
   - Servicios de aplicación que implementan los puertos de entrada y orquestan los casos de uso
   - DTOs para transferencia de datos entre capas
+  - Proxies para resolver dependencias circulares
 
 - **Infraestructura**:
-  - Adaptadores de entrada (implementaciones de los puertos de entrada, como WebSockets)
-  - Adaptadores de salida (implementaciones de los puertos de salida, como Redis y MQTT)
+  - Adaptadores de entrada (implementaciones de los puertos de entrada, como WebSocketsAdapter)
+  - Adaptadores de salida (implementaciones de los puertos de salida, como RedisRepository y MqttAdapter)
   - Configuración técnica, autenticación y aspectos transversales
 
 ### Puertos y Adaptadores
@@ -92,6 +102,59 @@ El sistema está diseñado siguiendo la arquitectura hexagonal (también conocid
 5. La cerradura ejecuta el comando y publica su nuevo estado en MQTT
 6. El backend recibe el estado actualizado y notifica a todos los clientes conectados
 
+## Patrones de Implementación
+
+### Inyección de Dependencias en Arquitectura Hexagonal
+
+La implementación utiliza varios patrones para manejar la inyección de dependencias en NestJS:
+
+1. Tokens de String: Para facilitar la inyección de dependencias y evitar problemas con tipos TypeScript, utilizamos tokens de string:
+
+   ```typescript
+   @Inject('LOCK_DOMAIN_SERVICE')
+   private readonly lockDomainService: LockDomainService
+   ```
+
+2. Proxy Pattern: Para resolver dependencias circulares, implementamos proxies que actúan como sustitutos temporales:
+
+   ```typescript
+   @Injectable()
+   export class LockNotificationProxy implements LockNotificationPort {
+
+     async notifyStatusChange(lockId: number, status: LockStatusType): Promise<void> {
+       console.log(`[PROXY] Status change notification: Lock ${lockId} - ${status}`);
+     }
+   }
+   ```
+
+3. Forward References: Para manejar dependencias circulares entre módulos:
+
+   ```typescript
+   imports: [
+     forwardRef(() => ApplicationModule),
+   ]
+   ```
+
+### Clases Abstractas vs Interfaces
+
+En esta implementación, los puertos (interfaces del dominio) están definidos como clases abstractas en lugar de interfaces tradicionales de TypeScript, lo que permite:
+
+1. Usar los puertos como tokens de inyección en NestJS
+
+2. Proporcionar implementaciones predeterminadas o parciales cuando sea necesario
+
+3. Mantener la claridad de la arquitectura hexagonal
+
+### Gestión de Dependencias Circulares
+
+Para gestionar las dependencias circulares inherentes a la arquitectura hexagonal con NestJS:
+
+1. Usamos proxy patterns para romper círculos de dependencia
+
+2. Implementamos una estrategia de "lazy loading" con forward references
+
+3. Priorizamos la inyección por token string sobre la inyección por tipo# Sistema de Control de Acceso para Cerraduras Inteligentes
+
 ## Tecnologías Utilizadas
 
 - **Backend**: NestJS v10 (Node.js v22)
@@ -106,15 +169,15 @@ El sistema está diseñado siguiendo la arquitectura hexagonal (también conocid
 ## Prerrequisitos
 
 - Docker y Docker Compose
-- Node.js v18+
-- pnpm v8+
+- Node.js v18+ (solo para desarrollo local)
+- pnpm v8+ (solo para desarrollo local)
 
 ## Configuración
 
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/yourusername/smart-lock-access-control.git
+git clone https://github.com/gabrielfagundeznievas/smart-lock-access-control.git
 cd smart-lock-access-control
 ```
 
@@ -145,7 +208,7 @@ JWT_EXPIRATION=1h
 
 Asegúrate de que existe un archivo `mosquitto.conf` en la raíz del proyecto:
 
-```
+```conf
 # Configuración básica
 listener 1883
 allow_anonymous true
@@ -167,37 +230,37 @@ log_dest file /mosquitto/log/mosquitto.log
 
 1. Construir y levantar los contenedores:
 
-```bash
-docker-compose up -d
-```
+   ```bash
+   docker-compose up -d
+   ```
 
 2. Verificar que los contenedores estén funcionando:
 
-```bash
-docker-compose ps
-```
+   ```bash
+   docker-compose ps
+   ```
 
 3. Ver los logs:
 
-```bash
-docker-compose logs -f api
-```
+   ```bash
+   docker-compose logs -f api
+   ```
 
 ### Desarrollo Local (sin Docker)
 
 1. Instalar dependencias:
 
-```bash
-pnpm install
-```
+   ```bash
+   pnpm install
+   ```
 
 2. Asegúrate de tener Redis y un broker MQTT corriendo localmente o ajusta las variables de entorno para apuntar a instancias externas.
 
 3. Iniciar la aplicación en modo desarrollo:
 
-```bash
-pnpm start:dev
-```
+   ```bash
+   pnpm start:dev
+   ```
 
 ## Uso del Sistema
 
@@ -247,7 +310,7 @@ mosquitto_sub -h localhost -t "lock/control"
 
 ## Estructura del Proyecto
 
-```
+```txt
 src/
 ├── domain/                 # Lógica de negocio y reglas
 │   ├── entities/           # Entidades de dominio (Lock)
@@ -257,6 +320,7 @@ src/
 │   └── services/           # Servicios de dominio (LockDomainService)
 ├── application/            # Casos de uso que orquestan el dominio
 │   ├── dtos/               # Data Transfer Objects
+│   ├── proxy/              # Proxies para resolver dependencias circulares
 │   ├── services/           # Servicios de aplicación (LockApplicationService)
 │   └── use-cases/          # Implementación de casos de uso específicos
 ├── infrastructure/         # Implementaciones técnicas (adaptadores)
@@ -268,6 +332,62 @@ src/
 ├── app.module.ts           # Módulo principal de NestJS
 └── main.ts                 # Punto de entrada
 ```
+
+## Resolución de Problemas Comunes
+
+### Problemas de Dependencias Circulares
+
+Si encuentras errores como UnknownDependenciesException o CircularDependencyException:
+
+1. Utiliza tokens string para inyección:
+
+   ```typescript
+   @Inject('TOKEN_NAME')
+   private readonly service: ServiceType;
+   ```
+
+2. Utiliza forward references:
+
+   ```typescript
+   @Inject(forwardRef(() => Service))
+   private readonly service: Service;
+   ```
+
+3. Implementa un proxy:
+   Si una dependencia circular no se puede resolver con forwardRef, considera implementar un proxy que actúe como intermediario.
+
+### Problemas con la Resolución de NestJS
+
+1. Error: "solo hace referencia a un tipo, pero aquí se usa como valor":
+   - Cambia de interfaces a clases abstractas para tus puertos
+   - Utiliza useClass o useExisting en lugar de inyección directa
+
+2. Error: "Nest can't resolve dependencies":
+   - Asegúrate de que todos los módulos necesarios están importados
+   - Verifica que los providers estén correctamente declarados
+   - Considera hacer global el módulo con @Global()
+
+### Problemas con Redis o MQTT
+
+1. Error de conexión a Redis:
+   - Verifica que Redis esté accesible en la URL configurada
+   - Asegúrate de que las variables de entorno estén correctamente definidas
+
+2. Error de conexión a MQTT:
+   - Verifica la configuración del broker MQTT
+   - Comprueba que el archivo mosquitto.conf está correctamente montado
+
+### Problemas con Docker
+
+1. Error de permisos:
+
+   ```bash
+   sudo chown -R $USER:$USER .
+   ```
+
+2. Problema con puertos ya utilizados:
+   - Cambia los puertos en el archivo .env
+   - O detén los servicios que estén usando esos puertos## Patrones de Implementación
 
 ## Desarrollo y Contribución
 
