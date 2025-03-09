@@ -24,7 +24,10 @@ export class LockApplicationService implements LockCommandPort, LockQueryPort {
     await this.closeLockUseCase.execute(lockId, userId);
   }
 
-  async updateLockStatus(lockId: number, status: LockStatusType): Promise<void> {
+  async updateLockStatus(
+    lockId: number,
+    status: LockStatusType,
+  ): Promise<void> {
     await this.updateLockStatusUseCase.execute(lockId, status);
   }
 

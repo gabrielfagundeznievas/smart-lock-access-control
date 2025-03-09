@@ -1,6 +1,8 @@
-import { Lock, type LockStatusType } from '../entities/lock.entity';
-import type { LockRepositoryPort } from '../ports/output/lock-repository.port';
+import { Injectable } from '@nestjs/common';
+import { Lock, LockStatusType } from '../entities/lock.entity';
+import { LockRepositoryPort } from '../ports/output/lock-repository.port';
 
+@Injectable()
 export class LockDomainService {
   constructor(private readonly lockRepository: LockRepositoryPort) {}
 
@@ -9,17 +11,20 @@ export class LockDomainService {
     return userId > 0;
   }
 
-  async updateLockStatus(lockId: number, status: LockStatusType): Promise<Lock> {
+  async updateLockStatus(
+    lockId: number,
+    status: LockStatusType,
+  ): Promise<Lock> {
     let lock = await this.lockRepository.findById(lockId);
-    
+
     if (!lock) {
       lock = new Lock(lockId, status);
     } else {
       lock.updateStatus(status);
     }
-    
+
     await this.lockRepository.saveStatus(lockId, status);
-    
+
     return lock;
   }
 }

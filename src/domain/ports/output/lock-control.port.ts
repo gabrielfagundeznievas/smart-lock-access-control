@@ -1,5 +1,4 @@
-export interface LockControlPort {
-  sendOpenCommand(lockId: number): Promise<void>;
-
-  sendCloseCommand(lockId: number): Promise<void>;
+export abstract class LockControlPort {
+  abstract sendOpenCommand(lockId: number): Promise<void>;
+  abstract sendCloseCommand(lockId: number): Promise<void>;
 }

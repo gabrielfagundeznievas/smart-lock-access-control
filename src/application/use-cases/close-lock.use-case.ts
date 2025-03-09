@@ -12,9 +12,14 @@ export class CloseLockUseCase {
   ) {}
 
   async execute(lockId: number, userId: number): Promise<void> {
-    const hasPermission = await this.lockDomainService.hasPermission(lockId, userId);
+    const hasPermission = await this.lockDomainService.hasPermission(
+      lockId,
+      userId,
+    );
     if (!hasPermission) {
-    throw new Error(`User ${userId} does not have permission to close lock ${lockId}`);
+      throw new Error(
+        `User ${userId} does not have permission to close lock ${lockId}`,
+      );
     }
 
     await this.lockControlPort.sendCloseCommand(lockId);

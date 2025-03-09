@@ -5,8 +5,8 @@ export class LockStatusDto {
   @IsNumber()
   lockId: number;
 
-@IsEnum(['open', 'closed'], {
+  @IsEnum(['open', 'closed'], {
     message: "Status must be 'open' or 'closed'",
-})
-status: LockStatusType;
+  })
+  status: LockStatusType;
 }

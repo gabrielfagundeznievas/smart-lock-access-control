@@ -1,5 +1,5 @@
 import type { LockStatusType } from '../../entities/lock.entity';
 
-export interface LockQueryPort {
-  getLockStatus(lockId: number): Promise<LockStatusType>;
+export abstract class LockQueryPort {
+  abstract getLockStatus(lockId: number): Promise<LockStatusType>;
 }

@@ -12,9 +12,14 @@ export class OpenLockUseCase {
   ) {}
 
   async execute(lockId: number, userId: number): Promise<void> {
-    const hasPermission = await this.lockDomainService.hasPermission(lockId, userId);
+    const hasPermission = await this.lockDomainService.hasPermission(
+      lockId,
+      userId,
+    );
     if (!hasPermission) {
-    throw new Error(`User ${userId} does not have permission to open lock ${lockId}`);
+      throw new Error(
+        `User ${userId} does not have permission to open lock ${lockId}`,
+      );
     }
 
     await this.lockControlPort.sendOpenCommand(lockId);
