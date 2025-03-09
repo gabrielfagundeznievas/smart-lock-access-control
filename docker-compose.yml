@@ -10,13 +10,11 @@ services:
       - NODE_ENV=development
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
       - MQTT_HOST=${MQTT_HOST}
       - MQTT_PORT=${MQTT_PORT}
+      - WEBSOCKET_PORT=${WEBSOCKET_PORT}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
     ports:
       - "${PORT}:${PORT}"
     depends_on:
@@ -27,7 +25,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-
+      
   redis:
     image: redis:7.2-alpine
     container_name: redis_service
@@ -38,7 +36,7 @@ services:
       - app_network
     volumes:
       - redis_data:/data
-
+      
   mqtt:
     image: eclipse-mosquitto:2.0
     container_name: mqtt_broker
@@ -50,22 +48,17 @@ services:
       - app_network
     volumes:
       - mosquitto_data:/mosquitto/data
-      - mosquitto_config:/mosquitto/config
       - mosquitto_log:/mosquitto/log
-    environment:
-        - MQTT_PORT=${MQTT_PORT}
-
-
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    
 volumes:
   redis_data:
     driver: local
   mosquitto_data:
     driver: local
-  mosquitto_config:
-    driver: local
   mosquitto_log:
     driver: local
-
+    
 networks:
   app_network:
     driver: bridge

@@ -1,98 +1,264 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Sistema de Control de Acceso para Cerraduras Inteligentes
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Este proyecto implementa un backend para un sistema de control de acceso que permite la gestión de cerraduras inteligentes a través de WebSockets y MQTT. El sistema está diseñado siguiendo los principios de la arquitectura hexagonal (también conocida como Ports and Adapters) para facilitar el mantenimiento, las pruebas y la evolución del sistema.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Tabla de Contenidos
 
-## Description
+- [Sistema de Control de Acceso para Cerraduras Inteligentes](#sistema-de-control-de-acceso-para-cerraduras-inteligentes)
+  - [Tabla de Contenidos](#tabla-de-contenidos)
+  - [Características](#características)
+  - [Arquitectura](#arquitectura)
+    - [Componentes Principales](#componentes-principales)
+    - [Flujo de Datos](#flujo-de-datos)
+  - [Tecnologías Utilizadas](#tecnologías-utilizadas)
+  - [Prerrequisitos](#prerrequisitos)
+  - [Configuración](#configuración)
+    - [1. Clonar el repositorio](#1-clonar-el-repositorio)
+    - [2. Configurar las variables de entorno](#2-configurar-las-variables-de-entorno)
+    - [3. Configurar Mosquitto (MQTT)](#3-configurar-mosquitto-mqtt)
+  - [Ejecución](#ejecución)
+    - [Usando Docker Compose (recomendado)](#usando-docker-compose-recomendado)
+    - [Desarrollo Local (sin Docker)](#desarrollo-local-sin-docker)
+  - [Uso del Sistema](#uso-del-sistema)
+    - [Conectarse mediante WebSockets](#conectarse-mediante-websockets)
+    - [Simulación de Dispositivos MQTT](#simulación-de-dispositivos-mqtt)
+  - [Estructura del Proyecto](#estructura-del-proyecto)
+  - [Desarrollo y Contribución](#desarrollo-y-contribución)
+    - [Ejecutar pruebas](#ejecutar-pruebas)
+    - [Lint y formateo de código](#lint-y-formateo-de-código)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Características
 
-## Project setup
+- Autenticación JWT para la comunicación segura con clientes
+- Comunicación en tiempo real mediante WebSockets para la interfaz de usuario
+- Integración con MQTT para comunicarse con dispositivos IoT (cerraduras)
+- Redis como almacenamiento en memoria para estados de cerraduras y sesiones
+- Arquitectura hexagonal para una clara separación de responsabilidades
+- Dockerizado para facilitar el desarrollo y despliegue
+
+## Arquitectura
+
+El sistema está diseñado siguiendo la arquitectura hexagonal, que separa la lógica de negocio (dominio) de la infraestructura técnica. Esta separación permite:
+
+- Independencia del framework: El dominio no depende de NestJS, Redis, MQTT o WebSockets
+- Mayor testabilidad: Se puede probar cada capa de forma aislada
+- Facilidad de mantenimiento: Las responsabilidades están claramente separadas
+- Flexibilidad: Se pueden reemplazar componentes técnicos sin alterar la lógica de negocio
+
+### Componentes Principales
+
+- **Dominio**: Contiene las entidades de negocio, reglas y puertos (interfaces)
+- **Aplicación**: Implementa casos de uso que orquestan la lógica de negocio
+- **Infraestructura**: Provee implementaciones técnicas (adaptadores) para los puertos
+
+### Flujo de Datos
+
+1. Los clientes se conectan al backend a través de WebSockets
+2. El backend verifica la autenticación mediante JWT
+3. Los clientes envían comandos para abrir/cerrar cerraduras
+4. El backend verifica permisos y envía el comando a la cerradura a través de MQTT
+5. La cerradura ejecuta el comando y publica su nuevo estado en MQTT
+6. El backend recibe el estado actualizado y notifica a todos los clientes conectados
+
+## Tecnologías Utilizadas
+
+- **Backend**: NestJS v10 (Node.js v22)
+- **Comunicación en tiempo real**: Socket.io (WebSockets)
+- **Comunicación IoT**: MQTT (Mosquitto)
+- **Almacenamiento en memoria**: Redis
+- **Autenticación**: JWT (JSON Web Tokens)
+- **Contenedores**: Docker y Docker Compose
+- **Lenguaje**: TypeScript
+- **Gestor de paquetes**: pnpm
+
+## Prerrequisitos
+
+- Docker y Docker Compose
+- Node.js v22+ (solo para desarrollo local)
+- pnpm v10+ (solo para desarrollo local)
+
+## Configuración
+
+### 1. Clonar el repositorio
 
 ```bash
-$ pnpm install
+git clone https://github.com/yourusername/door-poc.git
+cd door-poc
 ```
 
-## Compile and run the project
+### 2. Configurar las variables de entorno
+
+Crea un archivo `.env` en la raíz del proyecto o utiliza el proporcionado como referencia:
+
+```env
+# Configuración de la aplicación
+PORT=3000
+NODE_ENV=development
+
+# Configuración de Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# Configuración de MQTT
+MQTT_HOST=mqtt
+MQTT_PORT=1883
+WEBSOCKET_PORT=9001
+
+# Configuración de JWT
+JWT_SECRET=your_secret_key
+JWT_EXPIRATION=1h
+```
+
+### 3. Configurar Mosquitto (MQTT)
+
+Asegúrate de que existe un archivo `mosquitto.conf` en la raíz del proyecto:
+
+```
+# Configuración básica
+listener 1883
+allow_anonymous true
+
+# Configuración para WebSockets
+listener 9001
+protocol websockets
+allow_anonymous true
+
+# Persistencia
+persistence true
+persistence_location /mosquitto/data/
+log_dest file /mosquitto/log/mosquitto.log
+```
+
+## Ejecución
+
+### Usando Docker Compose (recomendado)
+
+1. Construir y levantar los contenedores:
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+docker-compose up -d
 ```
 
-## Run tests
+2. Verificar que los contenedores estén funcionando:
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+docker-compose ps
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+3. Ver los logs:
 
 ```bash
-$ pnpm install -g mau
-$ mau deploy
+docker-compose logs -f api
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Desarrollo Local (sin Docker)
 
-## Resources
+1. Instalar dependencias:
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+pnpm install
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+2. Asegúrate de tener Redis y un broker MQTT corriendo localmente o ajusta las variables de entorno para apuntar a instancias externas.
 
-## Support
+3. Iniciar la aplicación en modo desarrollo:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+pnpm start:dev
+```
 
-## Stay in touch
+## Uso del Sistema
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### Conectarse mediante WebSockets
 
-## License
+Los clientes pueden conectarse mediante WebSockets incluyendo un token JWT en los headers:
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```javascript
+// Cliente JavaScript
+const socket = io('http://localhost:3000', {
+  extraHeaders: {
+    Authorization: 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+
+// Escuchar cambios de estado
+socket.on('lockStatusChange', (data) => {
+  console.log(`Cerradura ${data.lockId} cambió a: ${data.status}`);
+});
+
+// Enviar comando para abrir una cerradura
+socket.emit('openLock', { lockId: 1 }, (response) => {
+  console.log('Respuesta:', response);
+});
+
+// Enviar comando para cerrar una cerradura
+socket.emit('closeLock', { lockId: 1 }, (response) => {
+  console.log('Respuesta:', response);
+});
+```
+
+### Simulación de Dispositivos MQTT
+
+Puedes simular una cerradura inteligente usando herramientas como MQTT Explorer o mosquitto_pub:
+
+```bash
+# Publicar un cambio de estado (simulando la cerradura)
+mosquitto_pub -h localhost -t "lock/status" -m '{"lockId": 1, "status": "open"}'
+```
+
+Y para recibir comandos:
+
+```bash
+# Suscribirse al topic de comandos (desde el punto de vista de la cerradura)
+mosquitto_sub -h localhost -t "lock/control"
+```
+
+## Estructura del Proyecto
+
+```
+src/
+├── domain/                 # Lógica de negocio y reglas
+│   ├── entities/           # Entidades de dominio
+│   ├── ports/              # Puertos para comunicación externa
+│   │   ├── input/          # Puertos de entrada (comandos)
+│   │   └── output/         # Puertos de salida (repositorios, notificaciones)
+│   └── services/           # Servicios de dominio
+├── application/            # Casos de uso que orquestan el dominio
+│   ├── dtos/               # Data Transfer Objects
+│   ├── ports/              # Puertos de aplicación
+│   ├── services/           # Servicios de aplicación
+│   └── use-cases/          # Implementación de casos de uso específicos
+├── infrastructure/         # Implementaciones técnicas (adaptadores)
+│   ├── adapters/
+│   │   ├── input/          # Adaptadores de entrada (websockets)
+│   │   └── output/         # Adaptadores de salida (redis, mqtt)
+│   ├── config/             # Configuración de la aplicación
+│   └── auth/               # Autenticación JWT
+├── app.module.ts           # Módulo principal de NestJS
+└── main.ts                 # Punto de entrada
+```
+
+## Desarrollo y Contribución
+
+### Ejecutar pruebas
+
+```bash
+# Pruebas unitarias
+pnpm test
+
+# Pruebas e2e
+pnpm test:e2e
+
+# Cobertura de pruebas
+pnpm test:cov
+```
+
+### Lint y formateo de código
+
+```bash
+# Ejecutar ESLint
+pnpm lint
+
+# Formatear código con Prettier
+pnpm format
+```
