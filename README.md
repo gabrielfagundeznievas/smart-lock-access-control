@@ -9,6 +9,7 @@ Este proyecto implementa un backend para un sistema de control de acceso que per
   - [Características](#características)
   - [Arquitectura](#arquitectura)
     - [Componentes Principales](#componentes-principales)
+    - [Puertos y Adaptadores](#puertos-y-adaptadores)
     - [Flujo de Datos](#flujo-de-datos)
   - [Tecnologías Utilizadas](#tecnologías-utilizadas)
   - [Prerrequisitos](#prerrequisitos)
@@ -29,16 +30,16 @@ Este proyecto implementa un backend para un sistema de control de acceso que per
 
 ## Características
 
-- Autenticación JWT para la comunicación segura con clientes
-- Comunicación en tiempo real mediante WebSockets para la interfaz de usuario
-- Integración con MQTT para comunicarse con dispositivos IoT (cerraduras)
-- Redis como almacenamiento en memoria para estados de cerraduras y sesiones
-- Arquitectura hexagonal para una clara separación de responsabilidades
-- Dockerizado para facilitar el desarrollo y despliegue
+- ✅ Autenticación JWT para la comunicación segura con clientes
+- ✅ Comunicación en tiempo real mediante WebSockets para la interfaz de usuario
+- ✅ Integración con MQTT para comunicarse con dispositivos IoT (cerraduras)
+- ✅ Redis como almacenamiento en memoria para estados de cerraduras y sesiones
+- ✅ Arquitectura hexagonal para una clara separación de responsabilidades
+- ✅ Dockerizado para facilitar el desarrollo y despliegue
 
 ## Arquitectura
 
-El sistema está diseñado siguiendo la arquitectura hexagonal, que separa la lógica de negocio (dominio) de la infraestructura técnica. Esta separación permite:
+El sistema está diseñado siguiendo la arquitectura hexagonal (también conocida como Ports and Adapters), que separa la lógica de negocio (dominio) de la infraestructura técnica. Esta separación permite:
 
 - Independencia del framework: El dominio no depende de NestJS, Redis, MQTT o WebSockets
 - Mayor testabilidad: Se puede probar cada capa de forma aislada
@@ -47,9 +48,40 @@ El sistema está diseñado siguiendo la arquitectura hexagonal, que separa la l�
 
 ### Componentes Principales
 
-- **Dominio**: Contiene las entidades de negocio, reglas y puertos (interfaces)
-- **Aplicación**: Implementa casos de uso que orquestan la lógica de negocio
-- **Infraestructura**: Provee implementaciones técnicas (adaptadores) para los puertos
+- **Dominio**: 
+  - Entidades de negocio y reglas (Lock)
+  - Puertos de entrada (interfaces que definen cómo se puede usar el dominio)
+  - Puertos de salida (interfaces que definen cómo el dominio se comunica con servicios externos)
+  - Servicios de dominio (lógica de negocio pura)
+
+- **Aplicación**:
+  - Casos de uso específicos (OpenLock, CloseLock, UpdateLockStatus)
+  - Servicios de aplicación que implementan los puertos de entrada y orquestan los casos de uso
+  - DTOs para transferencia de datos entre capas
+
+- **Infraestructura**:
+  - Adaptadores de entrada (implementaciones de los puertos de entrada, como WebSockets)
+  - Adaptadores de salida (implementaciones de los puertos de salida, como Redis y MQTT)
+  - Configuración técnica, autenticación y aspectos transversales
+
+### Puertos y Adaptadores
+
+- **Puertos de Entrada (Primarios)**:
+  - `LockCommandPort`: Define comandos para controlar cerraduras
+  - `LockQueryPort`: Define consultas sobre el estado de cerraduras
+
+- **Puertos de Salida (Secundarios)**:
+  - `LockRepositoryPort`: Para persistencia de datos
+  - `LockNotificationPort`: Para notificar cambios de estado
+  - `LockControlPort`: Para comunicarse con dispositivos físicos
+  - `SessionRepositoryPort`: Para gestionar sesiones
+
+- **Adaptadores de Entrada**:
+  - `WebsocketsAdapter`: Recibe comandos desde clientes web/móvil
+
+- **Adaptadores de Salida**:
+  - `RedisRepository`: Implementa persistencia en Redis
+  - `MqttAdapter`: Implementa comunicación con dispositivos MQTT
 
 ### Flujo de Datos
 
@@ -74,16 +106,16 @@ El sistema está diseñado siguiendo la arquitectura hexagonal, que separa la l�
 ## Prerrequisitos
 
 - Docker y Docker Compose
-- Node.js v22+ (solo para desarrollo local)
-- pnpm v10+ (solo para desarrollo local)
+- Node.js v18+
+- pnpm v8+
 
 ## Configuración
 
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/yourusername/door-poc.git
-cd door-poc
+git clone https://github.com/yourusername/smart-lock-access-control.git
+cd smart-lock-access-control
 ```
 
 ### 2. Configurar las variables de entorno
@@ -105,7 +137,7 @@ MQTT_PORT=1883
 WEBSOCKET_PORT=9001
 
 # Configuración de JWT
-JWT_SECRET=your_secret_key
+JWT_SECRET=your_secret_key_for_poc
 JWT_EXPIRATION=1h
 ```
 
@@ -218,20 +250,19 @@ mosquitto_sub -h localhost -t "lock/control"
 ```
 src/
 ├── domain/                 # Lógica de negocio y reglas
-│   ├── entities/           # Entidades de dominio
+│   ├── entities/           # Entidades de dominio (Lock)
 │   ├── ports/              # Puertos para comunicación externa
-│   │   ├── input/          # Puertos de entrada (comandos)
-│   │   └── output/         # Puertos de salida (repositorios, notificaciones)
-│   └── services/           # Servicios de dominio
+│   │   ├── input/          # Puertos de entrada (primarios)
+│   │   └── output/         # Puertos de salida (secundarios)
+│   └── services/           # Servicios de dominio (LockDomainService)
 ├── application/            # Casos de uso que orquestan el dominio
 │   ├── dtos/               # Data Transfer Objects
-│   ├── ports/              # Puertos de aplicación
-│   ├── services/           # Servicios de aplicación
+│   ├── services/           # Servicios de aplicación (LockApplicationService)
 │   └── use-cases/          # Implementación de casos de uso específicos
 ├── infrastructure/         # Implementaciones técnicas (adaptadores)
 │   ├── adapters/
-│   │   ├── input/          # Adaptadores de entrada (websockets)
-│   │   └── output/         # Adaptadores de salida (redis, mqtt)
+│   │   ├── input/          # Adaptadores de entrada (implementan puertos de entrada)
+│   │   └── output/         # Adaptadores de salida (implementan puertos de salida)
 │   ├── config/             # Configuración de la aplicación
 │   └── auth/               # Autenticación JWT
 ├── app.module.ts           # Módulo principal de NestJS
